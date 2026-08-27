@@ -1,10 +1,5 @@
 "use client";
 export function DetectionPanel() {
-    function handleClick() {
-        alert(
-            "Prepare object detection"
-        );
-    }
     return (
         <section>
             <h2>
