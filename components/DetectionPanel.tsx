@@ -11,11 +11,14 @@ export function DetectionPanel() {
                 Object Detection
             </h2>
             <button
-                onClick={handleClick}
+                onClick={() =>
+                    alert(
+                        "Prepare object detection"
+                    )
+                }
             >
                 Prepare Detection
             </button>
-        </section>
-    );
-}
 
+        </section>
+    );}

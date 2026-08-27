@@ -1,3 +1,5 @@
+import { DetectionPanel }
+ from "@/components/DetectionPanel";
 import { FeatureCard }
   from "@/components/FeatureCard";
 import { AppHeader }
@@ -7,7 +9,7 @@ export default function Home() {
     <main>
 
       <AppHeader />
-      
+      <br></br>
       <FeatureCard
         title="Object Detection"
         description="ตรวจจับวัตถุจากรูปภาพด้วย AI"
@@ -15,13 +17,12 @@ export default function Home() {
       <br></br>
       <FeatureCard
         title="AI Chat"
-        description="สนทนากบั Generative AI"
+        description="สนทนากับ Generative AI"
       />
-      <button>
-        Start Detection
-      </button>
+      <br></br>
+      <DetectionPanel/>
     </main>
-
+    
   );
 
 }
