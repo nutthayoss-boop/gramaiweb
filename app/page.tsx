@@ -4,6 +4,8 @@ import { FeatureCard }
   from "@/components/FeatureCard";
 import { AppHeader }
   from "@/components/AppHeader";
+  import { ApiStatus } 
+   from "@/components/ApiStatus";
 export default function Home() {
   return (
     <main>
@@ -21,6 +23,8 @@ export default function Home() {
       />
       <br></br>
       <DetectionPanel/>
+      <br></br>
+      <ApiStatus />
     </main>
     
   );
