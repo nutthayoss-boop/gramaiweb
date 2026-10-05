@@ -1,13 +1,8 @@
 export function AppHeader() {
     return (
-        <header className="ux-header">
-            <p className="ux-eyebrow">
-                AI APPLICATION DEVELOPMENT
-            </p>
+        <header className="rd-header">
             <h1>AI Vision Application</h1>
-            <p className="ux-header-description">
-                Object Detection with AI
-            </p>
+            <p>อัปโหลดรูปถนนหรือลานจอดรถ แล้วให้ AI นับจำนวนยานพาหนะให้ทันที</p>
         </header>
     );
 }

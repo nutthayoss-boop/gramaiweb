@@ -1,244 +1,132 @@
 "use client";
-import {
-    useEffect,
-    useState,
-} from "react";
-type Detection = {
-    class: string;
-    confidence: number;
-    bbox: {
-        x1: number;
-        y1: number;
-        x2: number;
-        y2: number;
-    };
+import { useEffect, useState } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000";
+
+const VEHICLE_LABELS: Record<string, string> = {
+    car: "รถยนต์",
+    motorcycle: "มอเตอร์ไซค์",
+    bus: "รถบัส",
+    truck: "รถบรรทุก",
 };
+
+type DetectionResponse = {
+    message: string;
+    counts: Record<string, number>;
+    total_vehicles: number;
+    image_base64: string;
+    error?: string;
+};
+
 export function DetectionPanel() {
-    // ==================================
-    // 1. STATE
-    // ==================================
-    const [selectedFile, setSelectedFile] =
-        useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] =
-        useState<string | null>(null);
-    const [detections, setDetections] =
-        useState<Detection[]>([]);
-    const [loading, setLoading] =
-        useState(false);
-    const [error, setError] =
-        useState("");
-    const [hasAnalyzed, setHasAnalyzed] =
-        useState(false);
-    // ==================================
-    // 2. IMAGE PREVIEW
-    // ==================================
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [resultImage, setResultImage] = useState<string | null>(null);
+    const [counts, setCounts] = useState<Record<string, number>>({});
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [hasAnalyzed, setHasAnalyzed] = useState(false);
+
     useEffect(() => {
         if (!selectedFile) {
             setPreviewUrl(null);
             return;
         }
-        const url =
-            URL.createObjectURL(selectedFile);
+        const url = URL.createObjectURL(selectedFile);
         setPreviewUrl(url);
-        return () => {
-            URL.revokeObjectURL(url);
-        };
+        return () => URL.revokeObjectURL(url);
     }, [selectedFile]);
-    // ==================================
-    // 3. FILE SELECTION
-    // ==================================
-    function handleFileChange(
-        event: React.ChangeEvent<HTMLInputElement>
-    ) {
-        const file =
-            event.target.files?.[0];
-        if (!file) {
-            return;
-        }
-        if (!file.type.startsWith("image/")) {
-            setError("Please select an image file");
-            return;
-        }
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (!file) return;
         setSelectedFile(file);
-        // Clear results from previous image.
-        setDetections([]);
+        setResultImage(null);
         setHasAnalyzed(false);
         setError("");
     }
-    // ==================================
-    // 4. API REQUEST
-    // ==================================
-    async function detectObjects() {
+
+    async function detectVehicles() {
         if (!selectedFile) {
-            setError("Please select an image");
+            setError("เลือกรูปภาพก่อนเริ่มนับ");
             return;
         }
         try {
             setLoading(true);
             setError("");
-            setHasAnalyzed(false);
-            setDetections([]);
             const formData = new FormData();
-            // Keep the original API contract.
-            formData.append(
-                "image",
-                selectedFile
-            );
-            const response = await fetch(
-                "http://127.0.0.1:5000/predict",
-                {
-                    method: "POST",
-                    body: formData,
-                }
-            );
-            if (!response.ok) {
-                throw new Error("Detection failed");
+            formData.append("image", selectedFile);
+            const response = await fetch(`${API_URL}/predict`, { method: "POST", body: formData });
+            const data: DetectionResponse = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "ประมวลผลรูปภาพไม่สำเร็จ");
             }
-            const data = await response.json();
-            if (!Array.isArray(
-                data.detected_objects
-            )) {
-                throw new Error(
-                    "Invalid API response"
-                );
-            }
-            setDetections(
-                data.detected_objects
-            );
+            setResultImage(data.image_base64);
+            setCounts(data.counts || {});
+            setTotal(data.total_vehicles || 0);
             setHasAnalyzed(true);
-        } catch {
-            setError("Cannot detect objects");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบว่า Flask กำลังทำงานอยู่");
         } finally {
             setLoading(false);
         }
     }
-    // ==================================
-    // 5. JSX / USER INTERFACE
-    // ==================================
+
+    const shownImage = resultImage || previewUrl;
+
     return (
-        <section className="ux-card ux-detection">
-            {/* HEADER */}
-            <div className="ux-section-heading">
-                <p className="ux-eyebrow">
-                    AI IMAGE ANALYSIS
-                </p>
-                <h2>Object Detection</h2>
-                <p className="ux-muted">
-                    Upload an image to identify
-                    objects using the YOLO model.
-                </p>
+        <section className="rd-panel" aria-labelledby="detect-title">
+            <div className="rd-panel-head">
+                <h2 id="detect-title">ระบบนับจำนวนยานพาหนะ</h2>
+                <p>รองรับรถยนต์ มอเตอร์ไซค์ รถบัส และรถบรรทุก</p>
             </div>
-            {/* FILE UPLOAD */}
-            <div className="ux-upload">
-                <label className="ux-file-button">
-                    <input
-                        className="ux-file-input"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        disabled={loading}
-                    />
-                    <span>Choose Image</span>
-                </label>
-                <span className="ux-file-name">
-                    {selectedFile
-                        ? selectedFile.name
-                        : "No image selected"}
-                </span>
-            </div>
-            {/* IMAGE PREVIEW */}
-            {previewUrl && (
-                <div className="ux-preview">
-                    {/* eslint-disable-next-line
-@next/next/no-img-element */}
-                    <img
-                        src={previewUrl}
-                        alt="Selected image preview"
-                    />
-                </div>
-            )}
-            {/* DETECT BUTTON */}
-            <button
-                type="button"
-                className="ux-button"
-                onClick={detectObjects}
-                disabled={
-                    !selectedFile || loading
-                }
-            >
-                {loading
-                    ? "Detecting..."
-                    : "Detect Objects"}
-            </button>
-            {/* ERROR */}
-            {error && (
-                <div
-                    className="ux-error"
-                    role="alert"
-                >
-                    {error}
-                </div>
-            )}
-            {/* RESULT HEADER */}
-            <div className="ux-result-heading">
-                <h3>Detection Result</h3>
-                <p className="ux-muted">
-                    Objects identified in your image
-                </p>
-            </div>
-            {/* EMPTY STATE */}
-            {!loading &&
-                !error &&
-                !hasAnalyzed && (
-                    <p className="ux-muted">
-                        Select an image and click
-                        Detect Objects to begin.
-                    </p>
-                )}
-            {/* NO OBJECTS */}
-            {!loading &&
-                !error &&
-                hasAnalyzed &&
-                detections.length === 0 && (
-                    <p className="ux-muted">
-                        No objects detected.
-                    </p>
-                )}
-            {/* DETECTION RESULTS */}
-            <div className="ux-results">
-                {detections.map(
-                    (item, index) => (
-                        <article
-                            className="ux-result-item"
-                            key={index}
+            <div className="rd-panel-body">
+                <div className="rd-split">
+                    <div>
+                        <label className="rd-drop">
+                            <strong>{selectedFile ? "เปลี่ยนรูปภาพ" : "เลือกรูปถนนหรือลานจอดรถ"}</strong>
+                            <span>{selectedFile ? selectedFile.name : "คลิกเพื่อเลือกไฟล์ภาพ"}</span>
+                            <input type="file" accept="image/*" onChange={handleFileChange} disabled={loading} />
+                        </label>
+                        <button
+                            type="button"
+                            className="rd-button rd-button--block"
+                            onClick={detectVehicles}
+                            disabled={!selectedFile || loading}
                         >
-                            <strong>
-                                {item.class}
-                            </strong>
-                            <p>
-                                Confidence:
-                                {" "}
-                                {item.confidence}%
-                            </p>
-                            <div
-                                className="ux-confidence-track"
-                            >
-                                <div
-                                    className="ux-confidence-fill"
-                                    style={{
-                                        width: `${Math.max(
-                                            0,
-                                            Math.min(
-                                                100,
-                                                item.confidence
-                                            )
-                                        )
-                                            }%`,
-                                    }}
-                                />
+                            {loading ? "กำลังนับจำนวน..." : "เริ่มนับรถ"}
+                        </button>
+                        {error && <div className="rd-alert rd-alert--error" role="alert">{error}</div>}
+                    </div>
+
+                    {shownImage && (
+                        <div className="rd-preview">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={shownImage} alt={resultImage ? "ภาพผลการตรวจจับ" : "ภาพที่เลือก"} />
+                        </div>
+                    )}
+                </div>
+
+                {hasAnalyzed && (
+                    <div className="rd-result" role="status">
+                        <div className="rd-total">
+                            <b>{total}</b>
+                            <span>คัน ที่พบในภาพ</span>
+                        </div>
+                        {total > 0 ? (
+                            <div className="rd-stats">
+                                {Object.entries(counts).map(([type, count]) => (
+                                    <div key={type} className="rd-stat">
+                                        <p>{VEHICLE_LABELS[type] ?? type}</p>
+                                        <b>{count}</b>
+                                    </div>
+                                ))}
                             </div>
-                        </article>
-                    )
+                        ) : (
+                            <div className="rd-alert rd-alert--empty">ไม่พบยานพาหนะในภาพนี้ ลองใช้รูปที่เห็นรถชัดขึ้น</div>
+                        )}
+                    </div>
                 )}
             </div>
         </section>

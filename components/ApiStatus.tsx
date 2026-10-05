@@ -1,64 +1,45 @@
 "use client";
 import { useState } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000";
+
+type State = "idle" | "ok" | "error";
+
 export function ApiStatus() {
-    const [status, setStatus] =
-        useState("Not checked");
-    const [loading, setLoading] =
-        useState(false);
-    const [error, setError] =
-        useState("");
+    const [state, setState] = useState<State>("idle");
+    const [loading, setLoading] = useState(false);
+
     async function checkApi() {
         try {
             setLoading(true);
-            setError("");
-            const response = await fetch(
-                "http://127.0.0.1:5000/health"
-            );
-            if (!response.ok) {
-                throw new Error("API request failed");
-            }
+            const response = await fetch(`${API_URL}/health`);
+            if (!response.ok) throw new Error("API request failed");
             const data = await response.json();
-            setStatus(data.status);
+            setState(data.status === "ok" ? "ok" : "error");
         } catch {
-            setError("Cannot connect to API");
+            setState("error");
         } finally {
             setLoading(false);
         }
     }
+
+    const text =
+        state === "ok" ? "เชื่อมต่อ Flask API ได้แล้ว"
+        : state === "error" ? "เชื่อมต่อไม่ได้ ตรวจสอบว่า Flask ทำงานที่พอร์ต 5000"
+        : "ยังไม่ได้ตรวจสอบ";
+
     return (
-        <section className="ux-card ux-status">
-            <div className="ux-section-heading">
-                <p className="ux-eyebrow">
-                    SYSTEM STATUS
-                </p>
-                <h2>Backend API</h2>
-                <p className="ux-muted">
-                    Check the connection to Flask.
+        <section className="rd-card rd-status">
+            <div>
+                <h2>สถานะ Backend API</h2>
+                <p className="rd-state" role="status">
+                    <span className="rd-dot" data-state={state} aria-hidden="true" />
+                    {text}
                 </p>
             </div>
-            <p>
-                API Status:
-                {" "}
-                <strong>{status}</strong>
-            </p>
-            <button
-                type="button"
-                className="ux-button"
-                onClick={checkApi}
-                disabled={loading}
-            >
-                {loading
-                    ? "Checking..."
-                    : "Check API"}
+            <button type="button" className="rd-button" onClick={checkApi} disabled={loading}>
+                {loading ? "กำลังตรวจสอบ..." : "ตรวจสอบ API"}
             </button>
-            {error && (
-                <div
-                    className="ux-error"
-                    role="alert"
-                >
-                    {error}
-                </div>
-            )}
         </section>
     );
 }
