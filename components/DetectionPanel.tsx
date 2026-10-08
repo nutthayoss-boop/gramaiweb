@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000";
+// ตัด / ท้าย URL ออกเพื่อป้องกัน URL ซ้ำซ้อน
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000").replace(/\/\$/, "");
 
 const VEHICLE_LABELS: Record<string, string> = {
     car: "รถยนต์",
@@ -45,6 +46,7 @@ export function DetectionPanel() {
         setResultImage(null);
         setHasAnalyzed(false);
         setError("");
+        event.target.value = ""; // เคลียร์เพื่อเปิดโอกาสให้เลือกไฟล์เดิมซ้ำได้
     }
 
     async function detectVehicles() {
@@ -59,10 +61,17 @@ export function DetectionPanel() {
             formData.append("image", selectedFile);
             const response = await fetch(`${API_URL}/predict`, { method: "POST", body: formData });
             const data: DetectionResponse = await response.json();
+            
             if (!response.ok || data.error) {
                 throw new Error(data.error || "ประมวลผลรูปภาพไม่สำเร็จ");
             }
-            setResultImage(data.image_base64);
+
+            // ตรวจสอบและเติม Data URI Prefix หาก Flask ส่งมาเป็น Base64 ดิบ
+            const formattedImage = data.image_base64?.startsWith("data:")
+                ? data.image_base64
+                : `data:image/jpeg;base64,${data.image_base64}`;
+
+            setResultImage(formattedImage);
             setCounts(data.counts || {});
             setTotal(data.total_vehicles || 0);
             setHasAnalyzed(true);

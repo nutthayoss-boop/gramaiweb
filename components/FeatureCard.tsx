@@ -3,14 +3,15 @@ type FeatureCardProps = {
     title: string;
     description: string;
 };
+
 export function FeatureCard({ icon, title, description }: FeatureCardProps) {
     return (
-        <section className="rd-card rd-feature">
+        <div className="rd-card rd-feature">
             <div className="rd-icon" aria-hidden="true">{icon}</div>
             <div>
                 <h2>{title}</h2>
                 <p>{description}</p>
             </div>
-        </section>
+        </div>
     );
 }

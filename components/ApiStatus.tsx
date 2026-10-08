@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:5000").replace(/\/\$/, "");
 
 type State = "idle" | "ok" | "error";
 
@@ -25,7 +25,7 @@ export function ApiStatus() {
 
     const text =
         state === "ok" ? "เชื่อมต่อ Flask API ได้แล้ว"
-        : state === "error" ? "เชื่อมต่อไม่ได้ ตรวจสอบว่า Flask ทำงานที่พอร์ต 5000"
+        : state === "error" ? "เชื่อมต่อไม่ได้ ตรวจสอบว่า Flask กำลังทำงานอยู่"
         : "ยังไม่ได้ตรวจสอบ";
 
     return (
